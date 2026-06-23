@@ -7,10 +7,7 @@ namespace task05tests
     public class TestClass
     {
         public int PublicField;
-
-        private string _privateField;
-
-
+        private string _privateField = ""; //убираем предупреждение т.к. CI ругается на null значения
         public int Property { get; set; }
 
         public void Method()
@@ -20,6 +17,10 @@ namespace task05tests
         public int Add(int a, int b)
         {
             return a + b;
+        }
+        public string GetPrivateField() //убираем предупреждение якобы "используя" поле
+        {
+            return _privateField;
         }
     }
 
