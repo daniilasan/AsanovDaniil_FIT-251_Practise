@@ -1,4 +1,4 @@
-using Xunit;
+Ôªøusing Xunit;
 using task02;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,9 +14,9 @@ namespace task02tests
         {
             _testStudents = new List<Student>
             {
-                new() { Name = "»‚‡Ì", Faculty = "‘»“", Grades = new List<int> { 5, 4, 5 } },
-                new() { Name = "¿ÌÌ‡", Faculty = "‘»“", Grades = new List<int> { 3, 4, 3 } },
-                new() { Name = "œÂÚ", Faculty = "›ÍÓÌÓÏËÍ‡", Grades = new List<int> { 5, 5, 5 } }
+                new() { Name = "–ò–≤–∞–Ω", Faculty = "–§–ò–¢", Grades = new List<int> { 5, 4, 5 } },
+                new() { Name = "–ê–Ω–Ω–∞", Faculty = "–§–ò–¢", Grades = new List<int> { 3, 4, 3 } },
+                new() { Name = "–ü–µ—Ç—Ä", Faculty = "–≠–∫–æ–Ω–æ–º–∏–∫–∞", Grades = new List<int> { 5, 5, 5 } }
             };
             _service = new StudentService(_testStudents);
         }
@@ -24,9 +24,9 @@ namespace task02tests
         [Fact]
         public void GetStudentsByFaculty_ReturnsCorrectStudents()
         {
-            var result = _service.GetStudentsByFaculty("‘»“").ToList();
+            var result = _service.GetStudentsByFaculty("–§–ò–¢").ToList();
             Assert.Equal(2, result.Count);
-            Assert.True(result.All(s => s.Faculty == "‘»“"));
+            Assert.True(result.All(s => s.Faculty == "–§–ò–¢"));
         }
 
         [Fact]
@@ -34,17 +34,17 @@ namespace task02tests
         {
             var result = _service.GetStudentsWithMinAverageGrade(4.5).ToList();
             Assert.Equal(2, result.Count);
-            Assert.Contains(result, s => s.Name == "»‚‡Ì");
-            Assert.Contains(result, s => s.Name == "œÂÚ");
+            Assert.Contains(result, s => s.Name == "–ò–≤–∞–Ω");
+            Assert.Contains(result, s => s.Name == "–ü–µ—Ç—Ä");
         }
 
         [Fact]
         public void GetStudentsOrderedByName_ReturnsOrderedStudents()
         {
             var result = _service.GetStudentsOrderedByName().ToList();
-            Assert.Equal("¿ÌÌ‡", result[0].Name);
-            Assert.Equal("»‚‡Ì", result[1].Name);
-            Assert.Equal("œÂÚ", result[2].Name);
+            Assert.Equal("–ê–Ω–Ω–∞", result[0].Name);
+            Assert.Equal("–ò–≤–∞–Ω", result[1].Name);
+            Assert.Equal("–ü–µ—Ç—Ä", result[2].Name);
         }
 
         [Fact]
@@ -52,15 +52,15 @@ namespace task02tests
         {
             var result = _service.GroupStudentsByFaculty();
             Assert.Equal(2, result.Count);
-            Assert.Equal(2, result["‘»“"].Count());
-            Assert.Equal(1, result["›ÍÓÌÓÏËÍ‡"].Count());
+            Assert.Equal(2, result["–§–ò–¢"].Count());
+            Assert.Equal(1, result["–≠–∫–æ–Ω–æ–º–∏–∫–∞"].Count());
         }
 
         [Fact]
         public void GetFacultyWithHighestAverageGrade_ReturnsCorrectFaculty()
         {
             var result = _service.GetFacultyWithHighestAverageGrade();
-            Assert.Equal("›ÍÓÌÓÏËÍ‡", result);
+            Assert.Equal("–≠–∫–æ–Ω–æ–º–∏–∫–∞", result);
         }
     }
 }
