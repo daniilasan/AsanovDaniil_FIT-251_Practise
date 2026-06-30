@@ -2,7 +2,6 @@
 using System.IO;
 using System.Reflection;
 using CommandLib;
-using FileSystemCommands;
 
 namespace CommandRunner
 {
@@ -18,7 +17,6 @@ namespace CommandRunner
                 return;
             }
 
-            //Динамическая загрузка библиотеки через рефлексию
             Assembly LoadedAssembly = Assembly.LoadFrom(DllPath);
             Type[] Types = LoadedAssembly.GetTypes();
 
@@ -36,7 +34,6 @@ namespace CommandRunner
 
                             object? CommandInstance = null;
 
-                            //Создаём экземпляры с нужными параметрами
                             if (CurrentType.Name == "DirectorySizeCommand")
                             {
                                 string TestPath = Path.GetTempPath();
@@ -51,18 +48,24 @@ namespace CommandRunner
 
                             if (CommandInstance != null)
                             {
-                                //Выполняем через интерфейс
                                 ICommand Command = (ICommand)CommandInstance;
                                 Command.Execute();
 
-                                //Приведение типа для получения результата 
-                                if (CommandInstance is DirectorySizeCommand SizeCommand)
+                                PropertyInfo? TotalSizeProperty = CurrentType.GetProperty("TotalSize");
+                                if (TotalSizeProperty != null)
                                 {
-                                    Console.WriteLine("Result: total size = " + SizeCommand.TotalSize + " bytes");
+                                    object? SizeValue = TotalSizeProperty.GetValue(CommandInstance);
+                                    Console.WriteLine("Result: total size = " + SizeValue + " bytes");
                                 }
-                                else if (CommandInstance is FindFilesCommand FindCommand)
+
+                                PropertyInfo? FoundFilesProperty = CurrentType.GetProperty("FoundFiles");
+                                if (FoundFilesProperty != null)
                                 {
-                                    Console.WriteLine("Result: found " + FindCommand.FoundFiles.Length + " files");
+                                    object? FilesValue = FoundFilesProperty.GetValue(CommandInstance);
+                                    if (FilesValue is string[] FilesArray)
+                                    {
+                                        Console.WriteLine("Result: found " + FilesArray.Length + " files");
+                                    }
                                 }
 
                                 Console.WriteLine();
@@ -76,3 +79,4 @@ namespace CommandRunner
         }
     }
 }
+
