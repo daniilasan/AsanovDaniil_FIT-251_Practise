@@ -4,9 +4,12 @@ using CommandLib;
 
 namespace FileSystemCommands
 {
+    [DisplayName("Команда вычисления размера каталога")]
+    [Version(1, 0)]
     public class DirectorySizeCommand : ICommand
     {
         private string DirectoryPath;
+
         public long TotalSize { get; private set; }
 
         public DirectorySizeCommand(string DirectoryPath)
@@ -15,6 +18,7 @@ namespace FileSystemCommands
             this.TotalSize = 0;
         }
 
+        [DisplayName("Вычислить размер каталога")]
         public void Execute()
         {
             if (Directory.Exists(DirectoryPath) == false)
@@ -24,8 +28,6 @@ namespace FileSystemCommands
             }
 
             TotalSize = 0;
-
-            // SearchOption.AllDirectories учитывает вложенные каталоги
             string[] Files = Directory.GetFiles(DirectoryPath, "*.*", SearchOption.AllDirectories);
 
             foreach (string File in Files)

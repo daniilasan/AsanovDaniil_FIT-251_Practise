@@ -4,12 +4,13 @@ using CommandLib;
 
 namespace FileSystemCommands
 {
+    [DisplayName("Команда поиска файлов по маске")]
+    [Version(1, 0)]
     public class FindFilesCommand : ICommand
     {
         private string DirectoryPath;
         private string FileMask;
 
-        //Сюда получаем результат
         public string[] FoundFiles { get; private set; }
 
         public FindFilesCommand(string DirectoryPath, string FileMask)
@@ -19,6 +20,7 @@ namespace FileSystemCommands
             this.FoundFiles = new string[0];
         }
 
+        [DisplayName("Найти файлы по маске")]
         public void Execute()
         {
             if (Directory.Exists(DirectoryPath) == false)
