@@ -53,7 +53,7 @@ namespace task02tests
             var result = _service.GroupStudentsByFaculty();
             Assert.Equal(2, result.Count);
             Assert.Equal(2, result["ФИТ"].Count());
-            Assert.Equal(1, result["Экономика"].Count());
+            Assert.Single(result["Экономика"]);
         }
 
         [Fact]

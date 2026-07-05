@@ -22,10 +22,23 @@ namespace task02
             => _students.ToLookup(s => s.Faculty);
 
         public string GetFacultyWithHighestAverageGrade()
-            => _students
+        {
+            if (_students == null || _students.Count == 0)
+            {
+                return "";
+            }
+
+            IGrouping<string, Student>? BestFaculty = _students
                 .GroupBy(s => s.Faculty)
                 .OrderByDescending(g => g.Average(s => s.Grades.Average()))
-                .First()
-                .Key;
+                .FirstOrDefault();
+
+            if (BestFaculty == null)
+            {
+                return "";
+            }
+
+            return BestFaculty.Key;
+        }
     }
 }
