@@ -9,9 +9,23 @@ namespace task03
     {
         private readonly List<T> _items = new();
 
-        public void Add(T item) => _items.Add(item);
+        public void Add(T item)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException("item", "item cannot be null");
+            }
+            _items.Add(item);
+        }
 
-        public void Remove(T item) => _items.Remove(item);
+        public void Remove(T item)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException("item", "item cannot be null");
+            }
+            _items.Remove(item);
+        }
 
         public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
 
@@ -27,6 +41,11 @@ namespace task03
 
         public static IEnumerable<T> GenerateSequence(int start, int count)
         {
+            if (count < 0)
+            {
+                throw new ArgumentException("count cannot be negative", "count");
+            }
+
             for (int i = 0; i < count; i++)
             {
                 yield return (T)Convert.ChangeType(start + i, typeof(T));
@@ -35,6 +54,16 @@ namespace task03
 
         public IEnumerable<T> FilterAndSort(Func<T, bool> predicate, Func<T, IComparable> keySelector)
         {
+            if (predicate == null)
+            {
+                throw new ArgumentNullException("predicate", "predicate cannot be null");
+            }
+
+            if (keySelector == null)
+            {
+                throw new ArgumentNullException("keySelector", "keySelector cannot be null");
+            }
+
             return _items.Where(predicate).OrderBy(x => keySelector(x));
         }
     }
