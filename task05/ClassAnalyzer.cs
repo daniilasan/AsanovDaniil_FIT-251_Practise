@@ -1,69 +1,103 @@
 ﻿using System;
-using System.Reflection;
-using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace task05
 {
     public class ClassAnalyzer
     {
-        private readonly Type _type;
+        private Type AnalyzedType;
 
-        public ClassAnalyzer(Type type)
+        public ClassAnalyzer(Type AnalyzedType)
         {
-            _type = type;
-        }
-
-        public IEnumerable<string> GetPublicMethods()
-        {
-            MethodInfo[] methods = _type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            IEnumerable<string> methodNames = methods.Select(m => m.Name);
-            return methodNames;
-        }
-
-        public IEnumerable<string> GetMethodParams(string methodname)
-        {
-            MethodInfo? method = _type.GetMethod(methodname);
-
-            if (method == null)
+            if (AnalyzedType == null)
             {
-                return Enumerable.Empty<string>();
+                throw new ArgumentNullException("AnalyzedType", "Type cannot be null");
             }
 
-            List<string> result = new List<string>();
-            result.Add($"Return: {method.ReturnType.Name}");
-
-            ParameterInfo[] parameters = method.GetParameters();
-            IEnumerable<string> paramStrings = parameters.Select(p => $"{p.ParameterType.Name} {p.Name}");
-            result.AddRange(paramStrings);
-
-            return result;
+            this.AnalyzedType = AnalyzedType;
         }
 
-        public IEnumerable<string> GetAllFields()
+        public string[] GetPublicMethods()
         {
-            FieldInfo[] fields = _type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            IEnumerable<string> fieldNames = fields.Select(f => f.Name);
-            return fieldNames;
+            if (AnalyzedType == null)
+            {
+                throw new ArgumentNullException("AnalyzedType", "Type cannot be null");
+            }
+
+            MethodInfo[] Methods = AnalyzedType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            return Methods.Select(Method => Method.Name).ToArray();
         }
 
-        public IEnumerable<string> GetProperties()
+        public string[] GetMethodParams(string MethodName)
         {
-            PropertyInfo[] properties = _type.GetProperties();
-            IEnumerable<string> propertyNames = properties.Select(p => p.Name);
-            return propertyNames;
+            if (AnalyzedType == null)
+            {
+                throw new ArgumentNullException("AnalyzedType", "Type cannot be null");
+            }
+
+            if (string.IsNullOrEmpty(MethodName))
+            {
+                throw new ArgumentException("MethodName cannot be null or empty", "MethodName");
+            }
+
+            MethodInfo? Method = AnalyzedType.GetMethod(MethodName);
+
+            if (Method == null)
+            {
+                throw new InvalidOperationException("Method not found: " + MethodName);
+            }
+
+            string ReturnType = "Return: " + Method.ReturnType.Name;
+
+            string[] Params = Method.GetParameters()
+                .Select(Param => Param.ParameterType.Name + " " + Param.Name)
+                .ToArray();
+
+            string[] Result = new string[Params.Length + 1];
+            Result[0] = ReturnType;
+
+            for (int Index = 0; Index < Params.Length; Index++)
+            {
+                Result[Index + 1] = Params[Index];
+            }
+
+            return Result;
+        }
+
+        public string[] GetAllFields()
+        {
+            if (AnalyzedType == null)
+            {
+                throw new ArgumentNullException("AnalyzedType", "Type cannot be null");
+            }
+
+            FieldInfo[] Fields = AnalyzedType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            return Fields.Select(Field => Field.Name).ToArray();
+        }
+
+        public string[] GetProperties()
+        {
+            if (AnalyzedType == null)
+            {
+                throw new ArgumentNullException("AnalyzedType", "Type cannot be null");
+            }
+
+            PropertyInfo[] Properties = AnalyzedType.GetProperties();
+
+            return Properties.Select(Property => Property.Name).ToArray();
         }
 
         public bool HasAttribute<T>() where T : Attribute
         {
-            T? attribute = _type.GetCustomAttribute<T>();
-
-            if (attribute != null)
+            if (AnalyzedType == null)
             {
-                return true;
+                throw new ArgumentNullException("AnalyzedType", "Type cannot be null");
             }
 
-            return false;
+            return Attribute.IsDefined(AnalyzedType, typeof(T));
         }
     }
 }
