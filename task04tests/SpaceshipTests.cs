@@ -45,7 +45,7 @@ namespace task04tests
             ISpaceship cruiser = new Cruiser();
             ISpaceship fighter = new Fighter();
 
-            // Просто вызываем методы, чтобы убедиться, что они работают и не падают
+            //Просто вызываем методы, чтобы убедиться, что они работают и не падают
             cruiser.MoveForward();
             cruiser.Rotate(90);
             cruiser.Fire();
