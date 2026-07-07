@@ -90,5 +90,41 @@ namespace task14
 
             return Result;
         }
+
+
+        public static double SolveSingleThread(double A, double B, Func<double, double> Function, double Step)
+        {
+            if (Step <= 0)
+            {
+                throw new ArgumentException("step must be positive", "step");
+            }
+
+            if (Function == null)
+            {
+                throw new ArgumentNullException("function", "function cannot be null");
+            }
+
+            double Result = 0.0;
+            double CurrentX = A;
+
+            while (CurrentX < B)
+            {
+                double NextX = CurrentX + Step;
+
+                if (NextX > B)
+                {
+                    NextX = B;
+                }
+
+                double Y1 = Function(CurrentX);
+                double Y2 = Function(NextX);
+                double TrapezoidArea = (Y1 + Y2) * Step / 2.0;
+
+                Result = Result + TrapezoidArea;
+                CurrentX = NextX;
+            }
+
+            return Result;
+        }
     }
 }

@@ -78,5 +78,29 @@ namespace task14tests
         {
             Assert.Throws<ArgumentNullException>(() => DefiniteIntegral.Solve(0, 1, null!, 1e-4, 2));
         }
+
+
+
+        [Fact]
+        public void SolveSingleThread_SinOnMinus100To100_IsCloseToZero()
+        {
+            Func<double, double> SinFunction = (double X) => Math.Sin(X);
+
+            double Result = DefiniteIntegral.SolveSingleThread(-100, 100, SinFunction, 1e-4);
+            double AbsResult = Math.Abs(Result);
+
+            Assert.True(AbsResult < 1e-3, "Result: " + Result);
+        }
+
+        [Fact]
+        public void SolveSingleThread_MatchesMultiThreadVersion()
+        {
+            Func<double, double> SinFunction = (double X) => Math.Sin(X);
+
+            double SingleResult = DefiniteIntegral.SolveSingleThread(-100, 100, SinFunction, 1e-4);
+            double MultiResult = DefiniteIntegral.Solve(-100, 100, SinFunction, 1e-4, 4);
+
+            Assert.Equal(SingleResult, MultiResult, 6);
+        }
     }
 }
