@@ -8,18 +8,20 @@ namespace task17
     {
         private Thread WorkerThread;
         private Queue<ICommand> CommandQueue;
+        private IScheduler Scheduler;
         private object SyncRoot;
-        private bool IsSoftStopped;
-        private bool IsHardStopped;
+        private bool IsStopped;
+        private int Quantum;
         private ExceptionHandler? Handler;
 
-        public ServerThread(ExceptionHandler? Handler)
+        public ServerThread(ExceptionHandler? Handler, IScheduler Scheduler, int Quantum)
         {
             this.Handler = Handler;
+            this.Scheduler = Scheduler;
+            this.Quantum = Quantum;
             CommandQueue = new Queue<ICommand>();
             SyncRoot = new object();
-            IsSoftStopped = false;
-            IsHardStopped = false;
+            IsStopped = false;
 
             WorkerThread = new Thread(WorkerLoop);
             WorkerThread.IsBackground = true;
@@ -40,20 +42,11 @@ namespace task17
             }
         }
 
-        public void RequestHardStop()
+        public void Stop()
         {
             lock (SyncRoot)
             {
-                IsHardStopped = true;
-                Monitor.PulseAll(SyncRoot);
-            }
-        }
-
-        public void RequestSoftStop()
-        {
-            lock (SyncRoot)
-            {
-                IsSoftStopped = true;
+                IsStopped = true;
                 Monitor.PulseAll(SyncRoot);
             }
         }
@@ -62,42 +55,54 @@ namespace task17
         {
             while (true)
             {
-                ICommand? CurrentCommand = null;
+                ICommand? NewCommand = null;
 
                 lock (SyncRoot)
                 {
-                    while (CommandQueue.Count == 0 && !IsSoftStopped && !IsHardStopped)
+                    while (CommandQueue.Count == 0 && !Scheduler.HasCommand() && !IsStopped)
                     {
                         Monitor.Wait(SyncRoot);
                     }
 
-                    if (IsHardStopped)
-                    {
-                        return;
-                    }
-
-                    if (IsSoftStopped && CommandQueue.Count == 0)
+                    if (IsStopped)
                     {
                         return;
                     }
 
                     if (CommandQueue.Count > 0)
                     {
-                        CurrentCommand = CommandQueue.Dequeue();
+                        NewCommand = CommandQueue.Dequeue();
                     }
                 }
 
-                if (CurrentCommand != null)
+                //Новую команду добавляем в планировщик
+                if (NewCommand != null)
                 {
-                    try
+                    Scheduler.Add(NewCommand);
+                }
+
+                //Берём следующую команду из планировщика и выполняем один тик
+                if (Scheduler.HasCommand())
+                {
+                    ICommand? CurrentCommand = Scheduler.Select();
+
+                    if (CurrentCommand != null)
                     {
-                        CurrentCommand.Execute();
-                    }
-                    catch (Exception Ex)
-                    {
-                        if (Handler != null)
+                        try
                         {
-                            Handler(CurrentCommand, Ex);
+                            bool Finished = CurrentCommand.Execute();
+
+                            if (!Finished)
+                            {
+                                Scheduler.Add(CurrentCommand);
+                            }
+                        }
+                        catch (Exception Ex)
+                        {
+                            if (Handler != null)
+                            {
+                                Handler(CurrentCommand, Ex);
+                            }
                         }
                     }
                 }
