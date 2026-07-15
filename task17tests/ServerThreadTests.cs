@@ -7,91 +7,109 @@ namespace task17tests
 {
     public class ServerThreadTests
     {
-        private class DummyCommand : ICommand
+        //Команда, которая выполняется за несколько тиков
+        private class LongRunningCommand : ICommand
         {
-            public bool IsExecuted = false;
-            public int SleepTime = 0;
+            public int TicksRemaining;
+            public int ExecutedCount = 0;
 
-            public DummyCommand(int SleepTime)
+            public LongRunningCommand(int Ticks)
             {
-                this.SleepTime = SleepTime;
+                TicksRemaining = Ticks;
             }
 
-            public void Execute()
+            public bool Execute()
             {
-                if (SleepTime > 0)
-                {
-                    Thread.Sleep(SleepTime);
-                }
-                IsExecuted = true;
+                Thread.Sleep(10);
+
+                ExecutedCount++;
+                TicksRemaining--;
+                return TicksRemaining == 0;
             }
         }
 
-        private class FailingCommand : ICommand
+        //Команда, которая помечает себя выполненной сразу
+        private class InstantCommand : ICommand
         {
-            public void Execute()
+            public bool WasExecuted = false;
+
+            public bool Execute()
             {
-                throw new Exception("Test exception");
+                WasExecuted = true;
+                return true;
             }
         }
 
         [Fact]
-        public void HardStop_StopsThread_Immediately()
+        public void LongRunningCommand_ExecutesMultipleTimes()
         {
-            ServerThread Server = new ServerThread(null);
-            DummyCommand Cmd1 = new DummyCommand(50);
-            DummyCommand Cmd2 = new DummyCommand(10);
-            DummyCommand Cmd3 = new DummyCommand(10);
+            RoundRobinScheduler Scheduler = new RoundRobinScheduler();
+            ServerThread Server = new ServerThread(null, Scheduler, 10);
+            LongRunningCommand Cmd = new LongRunningCommand(5);
 
-            Server.Enqueue(Cmd1);
-            Server.Enqueue(new HardStopCommand(Server));
-            Server.Enqueue(Cmd2);
-            Server.Enqueue(Cmd3);
+            Server.Enqueue(Cmd);
+
+            //Ждём, пока команда отработает все 5 тиков
             Thread.Sleep(200);
 
-            Assert.True(Cmd1.IsExecuted);
-            Assert.False(Cmd2.IsExecuted);
-            Assert.False(Cmd3.IsExecuted);
-            Assert.False(Server.GetThread().IsAlive);
+            Assert.Equal(5, Cmd.ExecutedCount);
+
+            Server.Stop();
+            Thread.Sleep(50);
         }
 
         [Fact]
-        public void SoftStop_WaitsForQueueToEmpty()
+        public void RoundRobin_AlternatesBetweenCommands()
         {
-            ServerThread Server = new ServerThread(null);
-            DummyCommand Cmd1 = new DummyCommand(50);
-            DummyCommand Cmd2 = new DummyCommand(50);
-            DummyCommand Cmd3 = new DummyCommand(50);
+            RoundRobinScheduler Scheduler = new RoundRobinScheduler();
+            ServerThread Server = new ServerThread(null, Scheduler, 10);
+
+            LongRunningCommand Cmd1 = new LongRunningCommand(3);
+            LongRunningCommand Cmd2 = new LongRunningCommand(3);
 
             Server.Enqueue(Cmd1);
             Server.Enqueue(Cmd2);
-            Server.Enqueue(Cmd3);
-            Server.Enqueue(new SoftStopCommand(Server));
 
-            Thread.Sleep(300);
+            //Ждём пока обе отработают
+            Thread.Sleep(200);
 
-            Assert.True(Cmd1.IsExecuted);
-            Assert.True(Cmd2.IsExecuted);
-            Assert.True(Cmd3.IsExecuted);
+            Assert.Equal(3, Cmd1.ExecutedCount);
+            Assert.Equal(3, Cmd2.ExecutedCount);
+
+            Server.Stop();
+            Thread.Sleep(50);
+        }
+
+        [Fact]
+        public void InstantCommand_DoesNotBlock_LongRunning()
+        {
+            RoundRobinScheduler Scheduler = new RoundRobinScheduler();
+            ServerThread Server = new ServerThread(null, Scheduler, 10);
+
+            LongRunningCommand LongCmd = new LongRunningCommand(10);
+            Server.Enqueue(LongCmd);
+            Thread.Sleep(50);
+            InstantCommand InstantCmd = new InstantCommand();
+            Server.Enqueue(InstantCmd);
+
+            Thread.Sleep(50);
+
+            Assert.True(InstantCmd.WasExecuted);
+            Assert.True(LongCmd.ExecutedCount < 10); 
+
+            Server.Stop();
+            Thread.Sleep(50);
+        }
+
+        [Fact]
+        public void ServerThread_Stops_WhenEmpty()
+        {
+            RoundRobinScheduler Scheduler = new RoundRobinScheduler();
+            ServerThread Server = new ServerThread(null, Scheduler, 10);
+            Server.Stop();
+            Thread.Sleep(100);
+
             Assert.False(Server.GetThread().IsAlive);
-        }
-
-        [Fact]
-        public void HardStop_FromWrongThread_ThrowsException()
-        {
-            ServerThread Server = new ServerThread(null);
-            HardStopCommand Cmd = new HardStopCommand(Server);
-
-            Assert.Throws<InvalidOperationException>(() => Cmd.Execute());
-        }
-
-        [Fact]
-        public void SoftStop_FromWrongThread_ThrowsException()
-        {
-            ServerThread Server = new ServerThread(null);
-            SoftStopCommand Cmd = new SoftStopCommand(Server);
-
-            Assert.Throws<InvalidOperationException>(() => Cmd.Execute());
         }
 
         [Fact]
@@ -106,17 +124,26 @@ namespace task17tests
                 CaughtException = Ex;
             };
 
-            ServerThread Server = new ServerThread(Handler);
-            FailingCommand Cmd = new FailingCommand();
-
-            Server.Enqueue(Cmd);
-            Server.Enqueue(new SoftStopCommand(Server));
+            RoundRobinScheduler Scheduler = new RoundRobinScheduler();
+            ServerThread Server = new ServerThread(Handler, Scheduler, 10);
+            var FailingCmd = new FailingCommand(); Server.Enqueue(FailingCmd);
 
             Thread.Sleep(100);
 
-            Assert.Equal(Cmd, FailedCommand);
+            Assert.Equal(FailingCmd, FailedCommand);
             Assert.NotNull(CaughtException);
             Assert.Equal("Test exception", CaughtException.Message);
+
+            Server.Stop();
+            Thread.Sleep(50);
+        }
+
+        private class FailingCommand : ICommand
+        {
+            public bool Execute()
+            {
+                throw new Exception("Test exception");
+            }
         }
     }
 }
