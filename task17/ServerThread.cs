@@ -10,18 +10,16 @@ namespace task17
         private Queue<ICommand> CommandQueue;
         private IScheduler Scheduler;
         private object SyncRoot;
-        private bool IsStopped;
-        private int Quantum;
+        private bool IsHardStopped;
         private ExceptionHandler? Handler;
 
-        public ServerThread(ExceptionHandler? Handler, IScheduler Scheduler, int Quantum)
+        public ServerThread(ExceptionHandler? Handler, IScheduler Scheduler)
         {
             this.Handler = Handler;
             this.Scheduler = Scheduler;
-            this.Quantum = Quantum;
             CommandQueue = new Queue<ICommand>();
             SyncRoot = new object();
-            IsStopped = false;
+            IsHardStopped = false;
 
             WorkerThread = new Thread(WorkerLoop);
             WorkerThread.IsBackground = true;
@@ -42,11 +40,11 @@ namespace task17
             }
         }
 
-        public void Stop()
+        public void RequestHardStop()
         {
             lock (SyncRoot)
             {
-                IsStopped = true;
+                IsHardStopped = true;
                 Monitor.PulseAll(SyncRoot);
             }
         }
@@ -59,12 +57,12 @@ namespace task17
 
                 lock (SyncRoot)
                 {
-                    while (CommandQueue.Count == 0 && !Scheduler.HasCommand() && !IsStopped)
+                    while (CommandQueue.Count == 0 && !Scheduler.HasCommand() && !IsHardStopped)
                     {
                         Monitor.Wait(SyncRoot);
                     }
 
-                    if (IsStopped)
+                    if (IsHardStopped)
                     {
                         return;
                     }
@@ -79,6 +77,7 @@ namespace task17
                 {
                     Scheduler.Add(NewCommand);
                 }
+
                 if (Scheduler.HasCommand())
                 {
                     ICommand? CurrentCommand = Scheduler.Select();
